@@ -100,12 +100,12 @@ bool blemm_exec_cmd_sync(blemm_cmd_t* cmd);
 		(array)->capacity = BLEMM_DAR_CHUNK_SIZE;  						\
 		(array)->items = BLEMM_MALLOC(BLEMM_DAR_INIT_SIZE * sizeof(item));			\
 	}												\
-	if ((array)->count++ >= (array)->capacity) 						\
+	if ((array)->count++ >= (array)->capacity) 							\
 	{  												\
 		(array)->capacity += BLEMM_DAR_CHUNK_SIZE;  						\
 		(array)->items = BLEMM_REALLOC((array)->items, (array)->capacity * sizeof(item));	\
 	}       											\
-	(array)->items[(array)->count - 1] = item;       							\
+	(array)->items[(array)->count - 1] = item;       						\
 
 void blemm_cpy_to_cstr(blemm_cstr_t* cstr, const char* str)
 {
