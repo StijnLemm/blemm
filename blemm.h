@@ -1,6 +1,8 @@
 #ifndef BLEMM_H
 #define BLEMM_H
 
+#include <unistd.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -37,10 +39,20 @@ typedef struct
 } blemm_cmd_t;
 
 void blemm_cpy_to_cstr(blemm_cstr_t* cstr, const char* str);
-void blemm_join_cstr(blemm_cstr_t* dest, blemm_cstr_t* src_list, size_t src_list_size);
-void blemm_cstr_builder_create(blemm_cstr_t* dest, blemm_cstr_builder_t* builder);
+void blemm_join_cstr(blemm_cstr_t* dest, const blemm_cstr_t* src_list, size_t src_list_size);
+
 void blemm_append_arg(blemm_cmd_t* cmd, const char* arg);
 bool blemm_exec_cmd_sync(blemm_cmd_t* cmd);
+
+int blemm_path1_older_path2_cstr(const blemm_cstr_t* path1, const blemm_cstr_t* path2);
+int blemm_path1_older_path2(const char* path1, const char* path2);
+bool blemm_rebuild_me();
+
+#define BLEMM_SCRIPT_FILE "blemm.c"
+#define BLEMM_BIN_FILE "blemm"
+
+#define BLEMM_REBUILD_ME() blemm_rebuild_me()
+#define PATH_OLDER(path1, path2) blemm_path1_older_path2(path1, path2)
 
 #define CMD(name) blemm_cmd_t name = {0}
 #define CMD_APPEND(cmd, arg) blemm_append_arg(&cmd, "\""arg"\" ") 
@@ -122,7 +134,7 @@ void blemm_cpy_to_cstr(blemm_cstr_t* cstr, const char* str)
 	cstr->count = len;
 }
 
-void blemm_join_cstr(blemm_cstr_t* dest, blemm_cstr_t* src_list, size_t src_list_size)
+void blemm_join_cstr(blemm_cstr_t* dest, const blemm_cstr_t* src_list, size_t src_list_size)
 {
 	assert(dest && "dest cstr is null");
 	assert(src_list && "src_list is null");
@@ -162,27 +174,81 @@ bool blemm_exec_cmd_sync(blemm_cmd_t* cmd)
 {
 	assert(cmd && "Trying to execute null cmd");
 
-	blemm_cstr_builder_t builder = {0};
-
-	BLEMM_LOGT("Executing command: ");
-	for (size_t i = 0; i < cmd->count; i++)
-	{
-		BLEMM_LOGT("%s", cmd->items[i].items);
-	}
 
 	blemm_cstr_t cstr = {0};
 	blemm_join_cstr(&cstr, cmd->items, cmd->items->count);
-	BLEMM_LOGT("joined cmd: %s ", cstr.items);
+	BLEMM_LOGT("Executing command: ");
+	BLEMM_LOGT("%s", cstr.items);
 
-	BLEMM_LOGI("--- CMD -> STDOUT ---");
+	BLEMM_LOGT("--- CMD -> STDOUT ---");
 	const int ret = system(cstr.items);
-	BLEMM_LOGI("--- CMD x> STDOUT ---");
+	BLEMM_LOGT("--- CMD x> STDOUT ---");
 	const bool failed = (ret != 0);
 	if (failed)
 		BLEMM_LOGE("System cmd returned non-zero: %d", ret);
 
 	free(cstr.items);
 	return failed;
+}
+
+int blemm_path1_older_path2_cstr(const blemm_cstr_t* path1, const blemm_cstr_t* path2)
+{
+	assert(path1 && "path1 is null");
+	assert(path2 && "path2 is null");
+	return blemm_path1_older_path2(path1->items, path2->items);
+}
+
+int blemm_path1_older_path2(const char* path1, const char* path2)
+{
+	assert(path1 && "path1 is null");
+	assert(path2 && "path2 is null");
+
+	int error = -1;
+	struct stat fb;
+
+	error = stat(path1, &fb);
+
+	if (error != 0) {
+		BLEMM_LOGW("stat failed error: %d, path: %s", error, path1);
+		return error;
+	}
+
+	const time_t fb1_time = fb.st_mtime;
+
+	error = stat(path2, &fb);
+
+	if (error != 0) {
+		BLEMM_LOGW("stat failed error: %d, path: %s", error, path2);
+		return error;
+	}
+
+	const time_t fb2_time = fb.st_mtime;
+
+	// TODO return sensable value?
+	return (fb1_time > fb2_time) ? 1 : 0;
+}
+
+bool blemm_rebuild_me()
+{
+	// TODO maybe make the name configurable??
+	int is_older = blemm_path1_older_path2(BLEMM_SCRIPT_FILE, BLEMM_BIN_FILE);
+	int header_changed = PATH_OLDER("blemm.h", "blemm"); // TODO: for development of this header!
+
+	if (!is_older && !header_changed)
+	{
+		return true;
+	}
+
+	CMD(build);
+	CMD_APPEND(build, "cc");
+	CMD_APPEND(build, "blemm.c");
+	CMD_APPEND(build, "-o");
+	CMD_APPEND(build, "blemm");
+	CMD_EXEC_SYNC(build);
+	BLEMM_LOGI("REBUILD ME");
+	execv("./blemm", NULL);
+
+	return false;
 }
 
 #endif // BLEMM_IMPL

@@ -4,16 +4,8 @@
 
 int main(int argc, char** argv)
 {
+	BLEMM_REBUILD_ME();
 	BLEMM_LOGI("--- BEGIN BLEMM BUILD SCRIPT ---");
-	CMD(build);
-	BLEMM_LOGI("Created build command");
-	CMD_APPEND(build, "cc");
-	CMD_APPEND(build, "blemm.c");
-	CMD_APPEND(build, "-o");
-	CMD_APPEND(build, "blemm");
-	BLEMM_LOGI("Added args to build command");
-	CMD_EXEC_SYNC(build);
-	BLEMM_LOGI("Executed build command");
 	BLEMM_LOGI("--- END BLEMM BUILD SCRIPT ---");
 }
 
