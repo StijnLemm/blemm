@@ -126,8 +126,8 @@ void blemm_cpy_to_cstr(blemm_cstr_t* cstr, const char* str)
 
 	const size_t len = strlen(str);
 	char* cpy_str = BLEMM_MALLOC(len * sizeof(char));
-	if (!str)
-		assert(0 && "Malloc failed!");
+
+	assert(cpy_str && "Malloc failed!");
 
 	BLEMM_MEMCPY((void*)cpy_str, str, len * sizeof(char));
 	cstr->items = cpy_str;
