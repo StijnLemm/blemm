@@ -4,17 +4,25 @@
 
 #define DEFAULT_BUILD_DIR "./build/"
 
+const char* program_curses_bin = DEFAULT_BUILD_DIR"program_curses";
+
 void build_example_curses()
 {
 	BLEMM_LOGT("Going to build example_curses!");
+	CMD(mkdir);
+	CMD_APPEND(mkdir, "mkdir");
+	CMD_APPEND(mkdir, DEFAULT_BUILD_DIR);
+	CMD_APPEND(mkdir, " > /dev/null");
+	CMD_EXEC_SYNC(mkdir);
+	CMD_FREE(mkdir);
+
 	const char* example_path = "./examples/program_curses/main.c";
-	const char* example_name = DEFAULT_BUILD_DIR"program_curses";
 	CMD(example);
 	CMD_APPEND(example, "cc");
 	CMD_APPEND(example, example_path);
 	CMD_APPEND(example, "-lcurses");
 	CMD_APPEND(example, "-o");
-	CMD_APPEND(example, example_name);
+	CMD_APPEND(example, program_curses_bin);
 	CMD_EXEC_SYNC(example);
 	CMD_FREE(example);
 }
@@ -22,9 +30,8 @@ void build_example_curses()
 void run_example_curses()
 {
 	BLEMM_LOGT("Going to run example_curses");
-	const char* example_name = DEFAULT_BUILD_DIR"program_curses";
 	CMD(example);
-	CMD_APPEND(example, example_name);
+	CMD_APPEND(example, program_curses_bin);
 	CMD_EXEC_SYNC(example);
 	CMD_FREE(example);
 }
