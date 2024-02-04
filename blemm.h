@@ -43,20 +43,27 @@ void blemm_join_cstr(blemm_cstr_t* dest, const blemm_cstr_t* src_list, size_t sr
 
 void blemm_append_arg(blemm_cmd_t* cmd, const char* arg);
 bool blemm_exec_cmd_sync(blemm_cmd_t* cmd);
+void blemm_execv_cmd(blemm_cmd_t* cmd);
 
 int blemm_path1_older_path2_cstr(const blemm_cstr_t* path1, const blemm_cstr_t* path2);
 int blemm_path1_older_path2(const char* path1, const char* path2);
-bool blemm_rebuild_me();
+bool blemm_rebuild_me(int argc, char** argv);
+
+char* blemm_shift_args(int* argc, char*** argv);
 
 #define BLEMM_SCRIPT_FILE "blemm.c"
 #define BLEMM_BIN_FILE "blemm"
 
-#define BLEMM_REBUILD_ME() blemm_rebuild_me()
+#define BLEMM_REBUILD_ME(argc, argv) blemm_rebuild_me(argc, argv)
 #define PATH_OLDER(path1, path2) blemm_path1_older_path2(path1, path2)
 
 #define CMD(name) blemm_cmd_t name = {0}
+#define CMD_FREE(cmd) free((cmd).items)
 #define CMD_APPEND(cmd, arg) blemm_append_arg(&cmd, arg) 
 #define CMD_EXEC_SYNC(cmd) blemm_exec_cmd_sync(&cmd)
+#define CMD_EXECV(cmd) blemm_execv_cmd(&cmd)
+
+#define SKIP_ARG() (void)blemm_shift_args(&argc, &argv)
 
 #ifndef BLEMM_LOG_LVL
 #error "please define BLEMM_LOG_LVL"
@@ -201,6 +208,19 @@ bool blemm_exec_cmd_sync(blemm_cmd_t* cmd)
 	return !failed;
 }
 
+void blemm_execv_cmd(blemm_cmd_t* cmd)
+{
+	assert(cmd && "Trying to execute null cmd");
+
+	blemm_cstr_t cstr = {0};
+	blemm_join_cstr(&cstr, cmd->items, cmd->count);
+	BLEMM_LOGT("Execv command: ");
+	BLEMM_LOGT("%s", cstr.items);
+
+	execv(cstr.items, NULL);
+	free(cstr.items);
+}
+
 int blemm_path1_older_path2_cstr(const blemm_cstr_t* path1, const blemm_cstr_t* path2)
 {
 	assert(path1 && "path1 is null");
@@ -238,11 +258,14 @@ int blemm_path1_older_path2(const char* path1, const char* path2)
 	return (fb1_time > fb2_time) ? 1 : 0;
 }
 
-bool blemm_rebuild_me()
+bool blemm_rebuild_me(int argc, char** argv)
 {
-	// TODO maybe make the name configurable??
-	const int is_older = PATH_OLDER(BLEMM_SCRIPT_FILE, BLEMM_BIN_FILE);
-	const int header_changed = PATH_OLDER("blemm.h", "blemm"); // TODO: for development of this header!
+	assert(argc && "Argc is zero!");
+	assert(argv && "Argv is null!");
+
+	const char* program = argv[0];
+	const int is_older = PATH_OLDER(BLEMM_SCRIPT_FILE, program);
+	const int header_changed = PATH_OLDER("blemm.h", program); // TODO: for development of this header!
 
 	if (!is_older && !header_changed)
 	{
@@ -263,10 +286,24 @@ bool blemm_rebuild_me()
 		exit(1);
 	}
 
+	CMD(blemm);
+	for (size_t i = 0; i < argc; i++)
+	{
+		CMD_APPEND(blemm, argv[i]);
+	}
 	BLEMM_LOGT("Going to open new blemm!");
-	execv("./blemm", NULL);
+	CMD_EXECV(blemm);
 
 	return false;
+}
+
+char* blemm_shift_args(int* argc, char*** argv)
+{
+	assert(*argc > 0 && "Shift arguments failed");
+	char* result = **argv;
+	(*argc)--;
+	(*argv)++;
+	return result;
 }
 
 #endif // BLEMM_IMPL
