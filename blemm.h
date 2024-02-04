@@ -55,7 +55,7 @@ bool blemm_rebuild_me();
 #define PATH_OLDER(path1, path2) blemm_path1_older_path2(path1, path2)
 
 #define CMD(name) blemm_cmd_t name = {0}
-#define CMD_APPEND(cmd, arg) blemm_append_arg(&cmd, "\""arg"\" ") 
+#define CMD_APPEND(cmd, arg) blemm_append_arg(&cmd, arg) 
 #define CMD_EXEC_SYNC(cmd) blemm_exec_cmd_sync(&cmd)
 
 #ifndef BLEMM_LOG_LVL
@@ -166,7 +166,18 @@ void blemm_append_arg(blemm_cmd_t* cmd, const char* arg)
 	assert(arg && "Trying to append null arg to cmd!");
 
 	blemm_cstr_t str = {0};
-	blemm_cpy_to_cstr(&str, arg);
+
+	const size_t len = strlen(arg);
+	const size_t new_len = len + 3u;
+	str.items = BLEMM_MALLOC(new_len * sizeof(char));
+	BLEMM_MEMCPY(&str.items[1], arg, len);
+
+	// this sucks
+	str.items[0] = '\"';
+	str.items[len + 1] = '\"';
+	str.items[len + 2] = ' ';
+	str.count = new_len;
+
 	BLEMM_DAR_AP(cmd, str);
 }
 
@@ -174,9 +185,8 @@ bool blemm_exec_cmd_sync(blemm_cmd_t* cmd)
 {
 	assert(cmd && "Trying to execute null cmd");
 
-
 	blemm_cstr_t cstr = {0};
-	blemm_join_cstr(&cstr, cmd->items, cmd->items->count);
+	blemm_join_cstr(&cstr, cmd->items, cmd->count);
 	BLEMM_LOGT("Executing command: ");
 	BLEMM_LOGT("%s", cstr.items);
 
@@ -188,7 +198,7 @@ bool blemm_exec_cmd_sync(blemm_cmd_t* cmd)
 		BLEMM_LOGE("System cmd returned non-zero: %d", ret);
 
 	free(cstr.items);
-	return failed;
+	return !failed;
 }
 
 int blemm_path1_older_path2_cstr(const blemm_cstr_t* path1, const blemm_cstr_t* path2)
@@ -231,21 +241,29 @@ int blemm_path1_older_path2(const char* path1, const char* path2)
 bool blemm_rebuild_me()
 {
 	// TODO maybe make the name configurable??
-	int is_older = blemm_path1_older_path2(BLEMM_SCRIPT_FILE, BLEMM_BIN_FILE);
-	int header_changed = PATH_OLDER("blemm.h", "blemm"); // TODO: for development of this header!
+	const int is_older = PATH_OLDER(BLEMM_SCRIPT_FILE, BLEMM_BIN_FILE);
+	const int header_changed = PATH_OLDER("blemm.h", "blemm"); // TODO: for development of this header!
 
 	if (!is_older && !header_changed)
 	{
 		return true;
 	}
 
+	BLEMM_LOGI("Blemm detected a change, going to rebuild itself!");
+
 	CMD(build);
 	CMD_APPEND(build, "cc");
 	CMD_APPEND(build, "blemm.c");
 	CMD_APPEND(build, "-o");
 	CMD_APPEND(build, "blemm");
-	CMD_EXEC_SYNC(build);
-	BLEMM_LOGI("REBUILD ME");
+
+	if(!CMD_EXEC_SYNC(build))
+	{
+		BLEMM_LOGE("Rebuilding blemm failed. Check your blemm.c for errors!");
+		exit(1);
+	}
+
+	BLEMM_LOGT("Going to open new blemm!");
 	execv("./blemm", NULL);
 
 	return false;

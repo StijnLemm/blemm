@@ -1,5 +1,6 @@
 # insert directories and files which need to be ignored!
 
+/build
 /blemm
 /blemm.dSYM
 /*.swp
