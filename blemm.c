@@ -12,7 +12,6 @@ void build_example_curses()
 	CMD(mkdir);
 	CMD_APPEND(mkdir, "mkdir");
 	CMD_APPEND(mkdir, DEFAULT_BUILD_DIR);
-	CMD_APPEND(mkdir, " > /dev/null");
 	CMD_EXEC_SYNC(mkdir);
 	CMD_FREE(mkdir);
 

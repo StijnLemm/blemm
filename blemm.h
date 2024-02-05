@@ -274,6 +274,13 @@ bool blemm_rebuild_me(int argc, char** argv)
 
 	BLEMM_LOGI("Blemm detected a change, going to rebuild itself!");
 
+	CMD(mov);
+	CMD_APPEND(mov, "mv");
+	CMD_APPEND(mov, program);
+	CMD_APPEND(mov, "blemm.old");
+	CMD_EXEC_SYNC(mov);
+	CMD_FREE(mov);
+
 	CMD(build);
 	CMD_APPEND(build, "cc");
 	CMD_APPEND(build, "blemm.c");
