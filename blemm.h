@@ -113,6 +113,8 @@ char* blemm_shift_args(int* argc, char*** argv);
 #define BLEMM_REALLOC(ptr, size) realloc(ptr, size)
 #define BLEMM_MALLOC(size) malloc(size)
 
+#ifndef __cplusplus
+
 #define BLEMM_DAR_AP(array, item)   									\
 	if ((array)->capacity < BLEMM_DAR_INIT_SIZE)							\
 	{                    										\
@@ -126,13 +128,30 @@ char* blemm_shift_args(int* argc, char*** argv);
 	}       											\
 	(array)->items[(array)->count - 1] = item;       						\
 
+#else
+
+#define BLEMM_DAR_AP(array, item)   									\
+	if ((array)->capacity < BLEMM_DAR_INIT_SIZE)							\
+	{                    										\
+		(array)->capacity = BLEMM_DAR_CHUNK_SIZE;  						\
+		(array)->items = (decltype((array)->items))BLEMM_MALLOC(BLEMM_DAR_INIT_SIZE * sizeof(item));			\
+	}												\
+	if ((array)->count++ >= (array)->capacity) 							\
+	{  												\
+		(array)->capacity += BLEMM_DAR_CHUNK_SIZE;  						\
+		(array)->items = (decltype((array)->items))BLEMM_REALLOC((array)->items, (array)->capacity * sizeof(item));	\
+	}       											\
+	(array)->items[(array)->count - 1] = item;       						\
+
+#endif
+
 void blemm_cpy_to_cstr(blemm_cstr_t* cstr, const char* str)
 {
 	assert(cstr && "Cstr ptr is null");
 	assert(str && "Str ptr is null");
 
 	const size_t len = strlen(str);
-	char* cpy_str = BLEMM_MALLOC(len * sizeof(char));
+	char* cpy_str = (char*)BLEMM_MALLOC(len * sizeof(char));
 
 	assert(cpy_str && "Malloc failed!");
 
@@ -155,7 +174,7 @@ void blemm_join_cstr(blemm_cstr_t* dest, const blemm_cstr_t* src_list, size_t sr
 
 	assert(needed_size && "join needed size is zero?");
 
-	dest->items = BLEMM_MALLOC(needed_size * sizeof(char));
+	dest->items = (char*)BLEMM_MALLOC(needed_size * sizeof(char));
 	char* ptr = dest->items;
 
 	assert(ptr && "join memory allocation failed!");
@@ -176,7 +195,7 @@ void blemm_append_arg(blemm_cmd_t* cmd, const char* arg)
 
 	const size_t len = strlen(arg);
 	const size_t new_len = len + 3u;
-	str.items = BLEMM_MALLOC(new_len * sizeof(char));
+	str.items = (char*)BLEMM_MALLOC(new_len * sizeof(char));
 	BLEMM_MEMCPY(&str.items[1], arg, len);
 
 	// this sucks
