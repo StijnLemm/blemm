@@ -115,7 +115,7 @@ char* blemm_shift_args(int* argc, char*** argv);
 
 #ifndef __cplusplus
 
-#define BLEMM_DAR_AP(array, item)   									\
+#define BLEMM_DAR_AP(array, item)								\
 if ((array)->capacity < BLEMM_DAR_INIT_SIZE)							\
 {                    										\
 	(array)->capacity = BLEMM_DAR_CHUNK_SIZE;  						\
@@ -126,13 +126,15 @@ if ((array)->count++ >= (array)->capacity) 							\
 	(array)->capacity += BLEMM_DAR_CHUNK_SIZE;  						\
 	(array)->items = BLEMM_REALLOC((array)->items, (array)->capacity * sizeof(item));	\
 }       											\
-(array)->items[(array)->count - 1] = item;       						\
+(array)->items[(array)->count - 1] = item;       					        \
+
 #else
-#define BLEMM_DAR_AP(array, item)   									\
+
+#define BLEMM_DAR_AP(array, item)   								\
 if ((array)->capacity < BLEMM_DAR_INIT_SIZE)							\
 {                    										\
 	(array)->capacity = BLEMM_DAR_CHUNK_SIZE;  						\
-	(array)->items = (decltype((array)->items))BLEMM_MALLOC(BLEMM_DAR_INIT_SIZE * sizeof(item));			\
+	(array)->items = (decltype((array)->items))BLEMM_MALLOC(BLEMM_DAR_INIT_SIZE * sizeof(item));	\
 }												\
 if ((array)->count++ >= (array)->capacity) 							\
 {  												\
@@ -140,6 +142,7 @@ if ((array)->count++ >= (array)->capacity) 							\
 	(array)->items = (decltype((array)->items))BLEMM_REALLOC((array)->items, (array)->capacity * sizeof(item));	\
 }       											\
 (array)->items[(array)->count - 1] = item;       						\
+
 #endif
 
 void blemm_cpy_to_cstr(blemm_cstr_t* cstr, const char* str)
